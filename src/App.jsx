@@ -1,748 +1,673 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Cpu, Activity, Network, Layers, Server, Radio, 
-  Target, Database, ArrowRight, ArrowLeft 
+  ChevronLeft, ChevronRight, Cpu, TrendingUp, Network, 
+  Layers, Database, ArrowUpRight, Crosshair, Server, 
+  Zap, Globe, Shield, Target, BarChart3 
 } from 'lucide-react';
 
-const COLORS = {
-  bg: '#0B0C10',
-  text: '#E0E2E4',
-  cyan: '#66FCF1',
-  amber: '#F5A623',
-  gray: '#1F2833',
-  lightGray: '#45A29E'
+// --- THEME CONSTANTS ---
+const THEME = {
+  bg: '#F8F7F5',
+  text: '#2F3542',
+  accent: '#007AFF',
+  grid: 'rgba(47, 53, 66, 0.06)',
+  fontTitle: '"Century Gothic", sans-serif',
+  fontBody: '"Times New Roman", serif',
 };
 
-const Presentation = () => {
+// --- HELPER COMPONENTS ---
+const BlueprintGrid = () => (
+  <div 
+    className="absolute inset-0 z-0 pointer-events-none opacity-50"
+    style={{
+      backgroundImage: `linear-gradient(${THEME.grid} 1px, transparent 1px), linear-gradient(90deg, ${THEME.grid} 1px, transparent 1px)`,
+      backgroundSize: '40px 40px'
+    }}
+  />
+);
+
+const SlideContainer = ({ children }) => (
+  <div 
+    className="absolute inset-0 flex flex-col p-4 sm:p-8 md:p-12 overflow-y-auto overflow-x-hidden"
+    style={{ backgroundColor: THEME.bg, color: THEME.text }}
+  >
+    <BlueprintGrid />
+    <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col justify-center min-h-full py-8">
+      {children}
+    </div>
+  </div>
+);
+
+const Title = ({ children, className = '' }) => (
+  <h1 
+    className={`font-bold leading-tight mb-4 sm:mb-6 text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-tight ${className}`}
+    style={{ fontFamily: THEME.fontTitle, color: THEME.text }}
+  >
+    {children}
+  </h1>
+);
+
+const BodyText = ({ children, className = '' }) => (
+  <p 
+    className={`leading-relaxed text-sm sm:text-base md:text-lg lg:text-xl mb-4 ${className}`}
+    style={{ fontFamily: THEME.fontBody }}
+  >
+    {children}
+  </p>
+);
+
+const BulletList = ({ items }) => (
+  <ul className="space-y-2 sm:space-y-3">
+    {items.map((item, idx) => (
+      <li key={idx} className="flex items-start text-xs sm:text-sm md:text-base lg:text-lg" style={{ fontFamily: THEME.fontBody }}>
+        <span className="mr-3 font-bold mt-1 shrink-0" style={{ color: THEME.accent }}>•</span>
+        <span dangerouslySetInnerHTML={{ __html: item }} />
+      </li>
+    ))}
+  </ul>
+);
+
+const BarChart = ({ data, yAxisLabel, maxValue }) => (
+  <div className="flex flex-col w-full border-b border-l pt-8 pr-4 h-64 sm:h-80" style={{ borderColor: THEME.text }}>
+    <div className="text-[10px] mb-2 opacity-70 uppercase tracking-widest" style={{ fontFamily: THEME.fontTitle }}>{yAxisLabel}</div>
+    <div className="flex-1 flex items-end justify-around space-x-2 h-full">
+      {data.map((item, idx) => (
+        <div key={idx} className="flex flex-col items-center justify-end flex-1 h-full group relative">
+          {/* Old Value Guide */}
+          {item.oldValue && (
+            <div 
+              className="absolute bottom-0 w-full border-t-2 border-dashed opacity-30 z-0"
+              style={{ height: `${(item.oldValue / maxValue) * 100}%`, borderColor: THEME.text }}
+            >
+               <span className="absolute -top-5 left-0 w-full text-center text-[8px] font-bold" style={{ fontFamily: THEME.fontTitle }}>PREV: {item.oldValue}</span>
+            </div>
+          )}
+          {/* Main Bar */}
+          <div 
+            className="w-full max-w-[40px] transition-all duration-1000 ease-out border flex flex-col justify-start overflow-visible"
+            style={{ 
+              height: `${(item.value / maxValue) * 100}%`, 
+              backgroundColor: item.highlight ? 'rgba(0, 122, 255, 0.1)' : 'transparent',
+              borderColor: item.highlight ? THEME.accent : THEME.text,
+              borderWidth: item.highlight ? '2px' : '1px'
+            }}
+          >
+            <span className="w-full text-center -mt-6 font-bold text-[10px] sm:text-xs" style={{ fontFamily: THEME.fontTitle, color: item.highlight ? THEME.accent : THEME.text }}>
+              {item.label}
+            </span>
+          </div>
+          <span className="mt-4 text-[9px] sm:text-[10px] font-bold text-center uppercase leading-tight" style={{ fontFamily: THEME.fontTitle }}>{item.xLabel}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// --- SLIDE COMPONENTS ---
+
+const Slide1 = () => (
+  <SlideContainer>
+    <div className="flex flex-col md:flex-row min-h-[400px] items-stretch gap-8">
+      <div className="w-full md:w-1/2 relative overflow-hidden flex items-center justify-center border border-gray-200 bg-white">
+        <svg viewBox="0 0 100 100" className="w-full h-full opacity-60">
+          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+            <path d="M 10 0 L 0 0 0 10" fill="none" stroke={THEME.text} strokeWidth="0.1" />
+          </pattern>
+          <rect width="100" height="100" fill="url(#grid)" />
+          <circle cx="50" cy="50" r="30" fill="none" stroke={THEME.accent} strokeWidth="0.5" />
+          <path d="M 20 20 L 80 80 M 80 20 L 20 80" stroke={THEME.text} strokeWidth="0.2" strokeDasharray="1,1" />
+          <rect x="45" y="45" width="10" height="10" fill={THEME.accent} opacity="0.1" stroke={THEME.accent} strokeWidth="0.2" />
+        </svg>
+      </div>
+      <div className="w-full md:w-1/2 p-4 flex flex-col justify-center border-r-[10px]" style={{ borderColor: THEME.accent }}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 opacity-70" style={{ fontFamily: THEME.fontTitle }}>UBS Global Research • FEB 2026</p>
+        <h1 className="font-bold leading-[1.1] text-3xl sm:text-4xl lg:text-5xl tracking-tighter" style={{ fontFamily: THEME.fontTitle, color: THEME.text }}>
+           TSMC Elevates <br/> Capital Expenditure <br/> for Cloud AI
+        </h1>
+        <div className="w-16 h-1 bg-blue-500 my-6"></div>
+        <BodyText className="max-w-md">Multi-year acceleration in infrastructure investment driven by the next generation of global compute demand.</BodyText>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide2 = () => (
+  <SlideContainer>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="space-y-6">
+        <Title>Infrastructure Revisions: US$75 Billion Peak by 2028</Title>
+        <BodyText>UBS has significantly lifted CAPEX forecasts for 2027 and 2028 to accommodate the accelerating roadmap for leading-edge nodes and advanced packaging.</BodyText>
+        <BulletList items={[
+          "<b>2026E CAPEX:</b> US$52bn – US$56bn guidance range.",
+          "<b>2027E Revision:</b> Lifted to US$65bn (previously US$60bn).",
+          "<b>2028E Revision:</b> Lifted to US$75bn (previously US$62bn)."
+        ]} />
+      </div>
+      <div className="bg-white p-6 border shadow-sm border-gray-200">
+        <BarChart 
+          yAxisLabel="CAPEX Revision (US$ Billions)"
+          maxValue={80}
+          data={[
+            { xLabel: '2026 Guidance', value: 54, label: '$54bn', highlight: false },
+            { xLabel: '2027 Forecast', oldValue: 60, value: 65, label: '$65bn', highlight: true },
+            { xLabel: '2028 Forecast', oldValue: 62, value: 75, label: '$75bn', highlight: true }
+          ]}
+        />
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide3 = () => (
+  <SlideContainer>
+    <div className="flex flex-col space-y-8">
+      <Title>Shift toward Wafer Fabrication Equipment (WFE)</Title>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-8 border border-gray-200 flex flex-col justify-center">
+          <p className="text-[10px] uppercase font-bold tracking-widest mb-4" style={{ fontFamily: THEME.fontTitle }}>2028 Allocation</p>
+          <p className="text-5xl font-bold mb-2" style={{ color: THEME.accent }}>55%</p>
+          <p className="text-sm opacity-70" style={{ fontFamily: THEME.fontBody }}>Share of CAPEX dedicated to tools and fabrication equipment.</p>
+        </div>
+        <div className="col-span-1 md:col-span-2 space-y-4 flex flex-col justify-center pl-0 md:pl-8">
+          <BodyText>As the physical "shells" of new fabs reach completion, spending moves from construction to high-value tool installation.</BodyText>
+          <BulletList items={[
+            "WFE share increases from 45% in 2026 to 55% in 2028.",
+            "UBS rolls out 2028 total WFE market forecast at <b>US$182.0bn</b>.",
+            "Structural transition from 'Building' phase to 'Equipping' phase."
+          ]} />
+        </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide4 = () => (
+  <SlideContainer>
+    <div className="flex flex-col h-full">
+      <Title>Manageable Capital Intensity vs Historical Cycles</Title>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 flex-1 mt-4">
+        <div className="lg:col-span-2 flex flex-col justify-center">
+          <BodyText>Despite record spending, TSMC’s massive revenue scale prevents the capital intensity (CAPEX/Revenue) from reaching prior cycle peaks of 50%.</BodyText>
+          <div className="mt-4 space-y-4">
+             <div className="flex justify-between border-b border-gray-200 pb-2">
+               <span className="text-xs font-bold" style={{ fontFamily: THEME.fontTitle }}>Smartphone Cycle (11-13)</span>
+               <span className="text-xs font-mono">~50%</span>
+             </div>
+             <div className="flex justify-between border-b border-gray-200 pb-2">
+               <span className="text-xs font-bold" style={{ fontFamily: THEME.fontTitle }}>HPC Cycle (21-22)</span>
+               <span className="text-xs font-mono">~50%</span>
+             </div>
+             <div className="flex justify-between border-b border-blue-200 pb-2">
+               <span className="text-xs font-bold text-blue-600" style={{ fontFamily: THEME.fontTitle }}>AI Cycle (27-28E)</span>
+               <span className="text-xs font-mono font-bold text-blue-600">29-32%</span>
+             </div>
+          </div>
+        </div>
+        <div className="lg:col-span-3 bg-white border border-gray-200 p-6 flex items-end">
+           <div className="w-full h-48 sm:h-64 flex items-end justify-between px-4 border-l border-b border-gray-300 relative">
+              <div className="absolute top-0 w-full border-t border-dashed border-red-300 opacity-50 flex justify-end">
+                <span className="text-[8px] text-red-500 pr-2 -mt-4">HISTORIC CAP (50%)</span>
+              </div>
+              {[
+                { label: '2025E', val: 33 },
+                { label: '2026E', val: 35 },
+                { label: '2027E', val: 32 },
+                { label: '2028E', val: 29 },
+              ].map((d, i) => (
+                <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                   <div className="w-8 bg-blue-100 border border-blue-500 transition-all" style={{ height: `${(d.val / 50) * 100}%` }}></div>
+                   <span className="mt-2 text-[10px] font-bold" style={{ fontFamily: THEME.fontTitle }}>{d.label}</span>
+                   <span className="text-[9px] opacity-60 font-mono">{d.val}%</span>
+                </div>
+              ))}
+           </div>
+        </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide5 = () => (
+  <SlideContainer>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="relative h-64 sm:h-80 w-full flex items-center justify-center">
+         <svg viewBox="0 0 100 100" className="w-full h-full max-w-sm">
+            <circle cx="50" cy="50" r="45" fill="none" stroke={THEME.accent} strokeWidth="1" />
+            <circle cx="50" cy="50" r="35" fill="rgba(0,122,255,0.05)" stroke={THEME.accent} strokeWidth="0.5" />
+            <text x="50" y="48" textAnchor="middle" fontSize="12" fontWeight="bold" fill={THEME.accent} fontFamily={THEME.fontTitle}>TSMC N2</text>
+            <text x="50" y="62" textAnchor="middle" fontSize="10" fill={THEME.text} fontFamily={THEME.fontTitle}>{'>'}80% SHARE</text>
+            
+            <circle cx="85" cy="20" r="12" fill="none" stroke={THEME.text} strokeWidth="0.2" strokeDasharray="1,1" />
+            <text x="85" y="22" textAnchor="middle" fontSize="3" fill={THEME.text} fontFamily={THEME.fontTitle}>Intel 18A</text>
+            
+            <circle cx="15" cy="80" r="10" fill="none" stroke={THEME.text} strokeWidth="0.2" strokeDasharray="1,1" />
+            <text x="15" y="82" textAnchor="middle" fontSize="3" fill={THEME.text} fontFamily={THEME.fontTitle}>Samsung N2</text>
+         </svg>
+      </div>
+      <div>
+        <Title>Two-Nanometer (N2) Dominance</Title>
+        <BodyText>While competitors show improved execution, TSMC’s yield and volume production experience—especially in large-die accelerators—secure its structural leadership.</BodyText>
+        <BulletList items={[
+          "Retaining <b>80%+ market share</b> in N2 foundry services.",
+          "Accelerating capacity to meet a robust pipeline of tape-outs.",
+          "Yield advantages provide massive cost-of-ownership benefits for CSPs."
+        ]} />
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide6 = () => (
+  <SlideContainer>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-1 space-y-6">
+        <Title>Margin Expansion via Mature Node Sales</Title>
+        <BodyText>The continuous scaling of N3 and N5 nodes delivers significant gross margin tailwinds as sales expand in years 4 and 5 of node production.</BodyText>
+        <div className="p-4 border border-blue-100 bg-blue-50">
+           <p className="text-[10px] font-bold uppercase mb-2" style={{ fontFamily: THEME.fontTitle }}>Projected Gross Margin</p>
+           <div className="flex justify-between items-baseline">
+             <span className="text-3xl font-bold" style={{ color: THEME.accent }}>64.9%</span>
+             <span className="text-xs opacity-60" style={{ fontFamily: THEME.fontTitle }}>TARGET BY 2028E</span>
+           </div>
+        </div>
+      </div>
+      <div className="lg:col-span-2 bg-white border border-gray-200 p-8">
+         <div className="h-64 sm:h-80 flex items-end justify-between border-b border-gray-300 px-4 space-x-4">
+            {[
+              { label: 'Year 1', val: 20, color: '#DDD' },
+              { label: 'Year 2', val: 40, color: '#CCC' },
+              { label: 'Year 3', val: 65, color: '#BBB' },
+              { label: 'Year 4', val: 90, color: THEME.accent, high: true },
+              { label: 'Year 5', val: 100, color: THEME.accent, high: true }
+            ].map((d, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
+                <div 
+                  className="w-full transition-all duration-700 border" 
+                  style={{ height: `${d.val}%`, backgroundColor: d.high ? 'rgba(0,122,255,0.2)' : 'white', borderColor: d.color }}
+                ></div>
+                <span className="mt-4 text-[10px] font-bold uppercase" style={{ fontFamily: THEME.fontTitle }}>{d.label}</span>
+                {d.high && <span className="text-[8px] font-bold text-blue-600 mt-1">PEAK MARGIN</span>}
+              </div>
+            ))}
+         </div>
+         <p className="mt-4 text-[10px] text-center opacity-60" style={{ fontFamily: THEME.fontBody }}>Figure 1: Structural GM tailwinds from TSMC expanding N5 and N3 node sales in years 4-5.</p>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide7 = () => (
+  <SlideContainer>
+    <div className="flex flex-col space-y-8">
+      <div className="text-center max-w-2xl mx-auto">
+        <Title>Forecast Revisions: Growth Acceleration</Title>
+        <BodyText>The upward shift in CAPEX directly supports a 3-4% lift in long-term revenue and earnings estimates.</BodyText>
+      </div>
+      <div className="bg-white border border-gray-200 shadow-xl overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="p-6 text-left text-xs uppercase tracking-widest font-bold" style={{ fontFamily: THEME.fontTitle }}>Metrics (NT$ Millions)</th>
+              <th className="p-6 text-right text-xs uppercase tracking-widest font-bold" style={{ fontFamily: THEME.fontTitle }}>2026E</th>
+              <th className="p-6 text-right text-xs uppercase tracking-widest font-bold" style={{ fontFamily: THEME.fontTitle }}>2027E</th>
+              <th className="p-6 text-right text-xs uppercase tracking-widest font-bold text-blue-600" style={{ fontFamily: THEME.fontTitle }}>2028E</th>
+            </tr>
+          </thead>
+          <tbody style={{ fontFamily: THEME.fontBody }}>
+            <tr className="border-b border-gray-100">
+              <td className="p-6 font-bold">Total Revenues</td>
+              <td className="p-6 text-right font-mono">5,007,382</td>
+              <td className="p-6 text-right font-mono">6,484,793</td>
+              <td className="p-6 text-right font-mono font-bold text-blue-600">8,110,091</td>
+            </tr>
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <td className="p-6 font-bold">Operating Margin (%)</td>
+              <td className="p-6 text-right font-mono">55.0%</td>
+              <td className="p-6 text-right font-mono">55.7%</td>
+              <td className="p-6 text-right font-mono font-bold text-blue-600">56.6%</td>
+            </tr>
+            <tr className="border-b border-gray-100">
+              <td className="p-6 font-bold">Net Earnings</td>
+              <td className="p-6 text-right font-mono">2,348,668</td>
+              <td className="p-6 text-right font-mono">3,079,731</td>
+              <td className="p-6 text-right font-mono font-bold text-blue-600">3,939,145</td>
+            </tr>
+            <tr>
+              <td className="p-6 font-bold text-lg">EPS (NT$)</td>
+              <td className="p-6 text-right font-mono text-lg">90.58</td>
+              <td className="p-6 text-right font-mono text-lg">118.77</td>
+              <td className="p-6 text-right font-mono text-xl font-bold text-blue-600">151.92</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide8 = () => (
+  <SlideContainer>
+    <div className="flex flex-col h-full justify-center space-y-12">
+      <div className="max-w-4xl mx-auto text-center">
+        <Target size={48} className="mx-auto mb-6" style={{ color: THEME.accent }} />
+        <Title>Price Target Maintained: NT$2,500</Title>
+        <BodyText className="text-xl">Valuation remains compelling even with elevated spending, as the 21x forward multiple reflects structural AI tailwinds.</BodyText>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+         <div className="p-8 border border-gray-200 bg-white">
+            <p className="text-[10px] font-bold uppercase opacity-60 mb-2" style={{ fontFamily: THEME.fontTitle }}>Current Price</p>
+            <p className="text-3xl font-mono font-bold">NT$1,915</p>
+            <p className="text-[10px] opacity-40 mt-1" style={{ fontFamily: THEME.fontBody }}>AS OF FEB 11, 2026</p>
+         </div>
+         <div className="p-8 border border-gray-200 bg-white">
+            <p className="text-[10px] font-bold uppercase opacity-60 mb-2" style={{ fontFamily: THEME.fontTitle }}>Target Multiple</p>
+            <p className="text-3xl font-mono font-bold">21x</p>
+            <p className="text-[10px] opacity-40 mt-1" style={{ fontFamily: THEME.fontBody }}>ON 2027E EARNINGS</p>
+         </div>
+         <div className="p-8 border border-blue-500 bg-blue-50">
+            <p className="text-[10px] font-bold uppercase text-blue-600 mb-2" style={{ fontFamily: THEME.fontTitle }}>Price Target</p>
+            <p className="text-3xl font-mono font-bold text-blue-600">NT$2,500</p>
+            <p className="text-[10px] opacity-60 mt-1" style={{ fontFamily: THEME.fontBody }}>12-MONTH OUTLOOK</p>
+         </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide9 = () => (
+  <SlideContainer>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="space-y-6">
+        <Title>WFE Market Expansion: US$182B Baseline</Title>
+        <BodyText>TSMC’s higher spending mirrors a broader revision in the Wafer Fabrication Equipment market as CSPs prioritize compute-heavy infrastructure.</BodyText>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           <div className="p-4 border border-gray-200 bg-white">
+             <p className="text-[10px] font-bold opacity-50 uppercase" style={{ fontFamily: THEME.fontTitle }}>2027 WFE (UBS Rev)</p>
+             <p className="text-xl font-bold" style={{ color: THEME.accent }}>US$172.5bn</p>
+           </div>
+           <div className="p-4 border border-blue-200 bg-blue-50">
+             <p className="text-[10px] font-bold text-blue-600 uppercase" style={{ fontFamily: THEME.fontTitle }}>2028 WFE (UBS Rollout)</p>
+             <p className="text-xl font-bold text-blue-600">US$182.0bn</p>
+           </div>
+        </div>
+      </div>
+      <div className="bg-white p-6 border border-gray-200">
+        <div className="h-64 sm:h-80 w-full flex items-end justify-between border-b border-gray-300 relative">
+           {[
+             { year: '2026E', val: 142 },
+             { year: '2027E', val: 172.5 },
+             { year: '2028E', val: 182 }
+           ].map((d, i) => (
+             <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group px-4">
+                <div className="w-full bg-blue-500 opacity-20 border border-blue-500" style={{ height: `${(d.val / 200) * 100}%` }}></div>
+                <span className="mt-4 text-[10px] font-bold" style={{ fontFamily: THEME.fontTitle }}>{d.year}</span>
+                <span className="text-[9px] opacity-60">${d.val}bn</span>
+             </div>
+           ))}
+        </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide10 = () => (
+  <SlideContainer>
+    <div className="flex flex-col space-y-8 h-full">
+      <Title>Cash Generation Recovery by 2027</Title>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 flex-1 items-center">
+         <div className="lg:col-span-3 bg-white border border-gray-200 p-8 flex flex-col h-full min-h-[350px]">
+            <p className="text-[10px] font-bold uppercase mb-8" style={{ fontFamily: THEME.fontTitle }}>Free Cash Flow (FCF) Yield %</p>
+            <div className="flex-1 flex items-end justify-between px-8 border-b border-gray-300 relative">
+              <div className="absolute top-1/2 w-full border-t border-gray-100 pointer-events-none"></div>
+              {[
+                { year: '2025E', val: 2.0 },
+                { year: '2026E', val: 1.8 },
+                { year: '2027E', val: 3.4 },
+                { year: '2028E', val: 5.1 }
+              ].map((d, i) => (
+                <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                   {/* Explicit bar rendering with minimum height check */}
+                   <div 
+                    className="w-12 bg-blue-500/10 border-t-2 border-blue-500 transition-all duration-1000 group-hover:bg-blue-500/20" 
+                    style={{ height: `${(d.val / 6) * 100}%` }}
+                   ></div>
+                   <span className="mt-4 text-[10px] font-bold" style={{ fontFamily: THEME.fontTitle }}>{d.year}</span>
+                   <span className="text-[10px] font-mono font-bold text-blue-600">{d.val}%</span>
+                </div>
+              ))}
+            </div>
+         </div>
+         <div className="lg:col-span-2 space-y-6">
+           <BodyText>The expanding revenue base triggers an aggressive recovery in yield as investment intensity stabilizes.</BodyText>
+           <BulletList items={[
+             "<b>2025/26 Cycle:</b> Peak absorption of capital into new nodes.",
+             "<b>2027 Inflection:</b> Structural recovery to 3.4% yield.",
+             "<b>2028 Outlook:</b> 5.1% yield allows for unparalleled reinvestment."
+           ]} />
+         </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide11 = () => (
+  <SlideContainer>
+    <div className="flex flex-col h-full items-center justify-center space-y-12 max-w-5xl mx-auto">
+      <div className="text-center">
+        <Title>Operational Scaling: Throughput vs. Value</Title>
+        <BodyText>TSMC is not just growing in physical volume, but in the dollar value processed per silicon wafer.</BodyText>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+         <div className="p-8 border border-gray-200 bg-white group hover:border-blue-500 transition-colors">
+            <Cpu size={32} className="mb-4 text-gray-400 group-hover:text-blue-500" />
+            <p className="text-[10px] font-bold uppercase opacity-60 mb-1" style={{ fontFamily: THEME.fontTitle }}>Capacity (kpcs 8" eq.)</p>
+            <div className="flex items-baseline space-x-4">
+               <span className="text-4xl font-bold">45,455</span>
+               <span className="text-xs text-blue-600 font-bold">+30% VS 2022</span>
+            </div>
+         </div>
+         <div className="p-8 border border-gray-200 bg-white group hover:border-blue-500 transition-colors">
+            <Zap size={32} className="mb-4 text-gray-400 group-hover:text-blue-500" />
+            <p className="text-[10px] font-bold uppercase opacity-60 mb-1" style={{ fontFamily: THEME.fontTitle }}>Blended ASP (US$)</p>
+            <div className="flex items-baseline space-x-4">
+               <span className="text-4xl font-bold">$4,256</span>
+               <span className="text-xs text-blue-600 font-bold">+118% VS 2022</span>
+            </div>
+         </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide12 = () => (
+  <SlideContainer>
+    <div className="flex flex-col h-full items-center justify-center text-center max-w-4xl mx-auto space-y-8">
+       <Shield size={64} style={{ color: THEME.accent }} strokeWidth={1} />
+       <Title className="text-center">The Moat of Competition</Title>
+       <div className="w-16 h-1 bg-gray-300"></div>
+       <BodyText className="italic text-xl sm:text-2xl leading-relaxed">
+         "Given the geopolitical dynamics, we think it is better for TSMC's competitors to continue to invest, rather than there being no competition at all."
+       </BodyText>
+       <p className="text-sm opacity-60 uppercase tracking-widest font-bold" style={{ fontFamily: THEME.fontTitle }}>— UBS STRATEGIC INSIGHT, FEB 2026</p>
+       <BodyText>The continued execution of Intel and Samsung validates the market's vast scale while TSMC maintains the apex yield and volume production.</BodyText>
+    </div>
+  </SlideContainer>
+);
+
+const Slide13 = () => (
+  <SlideContainer>
+    <div className="flex flex-col h-full space-y-12">
+      <div className="flex flex-col md:flex-row gap-12 items-center">
+        <div className="w-full md:w-1/2">
+          <Title>UBS vs. Market Consensus Gap</Title>
+          <BodyText>UBS estimates for 2028 are materially higher than current market consensus, suggesting a mispricing of the long-term AI benefit.</BodyText>
+          <div className="mt-8 space-y-4">
+             <div className="bg-blue-50 p-4 border-l-4 border-blue-500">
+               <p className="text-[10px] font-bold text-blue-600 uppercase" style={{ fontFamily: THEME.fontTitle }}>2028E EPS Advantage</p>
+               <p className="text-3xl font-bold">NT$151.92 <span className="text-sm font-normal opacity-60">vs. NT$133.36</span></p>
+               <p className="text-xs font-bold text-blue-500 mt-1 uppercase">+14% DELTA</p>
+             </div>
+          </div>
+        </div>
+        <div className="w-full md:w-1/2 bg-white border border-gray-200 p-8 h-80">
+           <p className="text-[10px] font-bold uppercase mb-8" style={{ fontFamily: THEME.fontTitle }}>Net Profit (NT$ Billion, 2028E)</p>
+           <div className="flex items-end justify-around h-48 border-b border-gray-300 px-8 space-x-8">
+              <div className="flex-1 flex flex-col items-center justify-end h-full">
+                 <div className="w-full bg-gray-100 border border-gray-300" style={{ height: '70%' }}></div>
+                 <span className="mt-4 text-[10px] font-bold">CONSENSUS</span>
+                 <span className="text-[10px] font-mono">3,538bn</span>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-end h-full">
+                 <div className="w-full bg-blue-100 border border-blue-500" style={{ height: '81%' }}></div>
+                 <span className="mt-4 text-[10px] font-bold text-blue-600">UBS EST</span>
+                 <span className="text-[10px] font-mono font-bold text-blue-600">3,939bn</span>
+              </div>
+           </div>
+        </div>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide14 = () => (
+  <SlideContainer>
+    <div className="grid grid-cols-1 md:grid-cols-2 h-full items-center gap-16">
+      <div className="bg-white border-2 border-blue-500 p-12 shadow-2xl relative overflow-hidden">
+         <div className="absolute top-0 right-0 p-4">
+           <BarChart3 size={120} className="text-blue-500/5" />
+         </div>
+         <Title className="text-blue-600">Investment Summary</Title>
+         <div className="space-y-8 mt-12">
+            <div>
+              <p className="text-[10px] font-bold uppercase opacity-40 mb-2" style={{ fontFamily: THEME.fontTitle }}>Core Thesis</p>
+              <p className="text-xl font-bold italic" style={{ fontFamily: THEME.fontBody }}>Decisive capital allocation secures unassailable dominance in the Cloud AI era.</p>
+            </div>
+            <BulletList items={[
+              "CAPEX acceleration to <b>US$75bn</b> is justified by robust CSP demand.",
+              "Technology leadership at <b>N2 node</b> remains intact with 80% share.",
+              "Significant earnings revision to <b>NT$151.92 EPS</b> by 2028E."
+            ]} />
+         </div>
+      </div>
+      <div className="flex flex-col justify-center text-center space-y-4">
+         <p className="text-5xl font-bold tracking-tighter" style={{ fontFamily: THEME.fontTitle }}>NT$2,500</p>
+         <p className="text-xs font-bold uppercase tracking-[0.4em] opacity-40" style={{ fontFamily: THEME.fontTitle }}>12-MONTH PRICE TARGET</p>
+         <div className="w-24 h-1 bg-blue-500 mx-auto mt-8"></div>
+         <p className="text-2xl font-bold text-blue-600 uppercase" style={{ fontFamily: THEME.fontTitle }}>BUY RATING REITERATED</p>
+      </div>
+    </div>
+  </SlideContainer>
+);
+
+const Slide15 = () => (
+  <div 
+    className="relative w-full h-full flex flex-col justify-center items-center overflow-hidden p-6"
+    style={{ backgroundColor: THEME.bg }}
+  >
+    <BlueprintGrid />
+    <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10">
+      <svg viewBox="0 0 100 100" className="w-[150%] h-[150%] animate-[spin_60s_linear_infinite]">
+         {[...Array(20)].map((_, i) => (
+           <circle key={i} cx="50" cy="50" r={i * 4} fill="none" stroke={THEME.text} strokeWidth="0.1" />
+         ))}
+      </svg>
+    </div>
+    <div className="relative z-10 bg-white border border-gray-200 p-12 md:p-20 shadow-2xl max-w-4xl text-center">
+       <h1 
+        className="font-bold uppercase tracking-[0.2em] mb-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
+        style={{ fontFamily: THEME.fontTitle, color: THEME.text }}
+      >
+        Scaling the Moat.
+      </h1>
+      <div className="w-16 h-1 mx-auto mb-8 bg-blue-500"></div>
+      <p className="text-lg md:text-xl lg:text-2xl opacity-80" style={{ fontFamily: THEME.fontBody }}>
+        Superior yield, unrivaled capacity, and decisive capital allocation engineer a foundational advantage in the global AI infrastructure landscape.
+      </p>
+    </div>
+  </div>
+);
+
+// --- MAIN APPLICATION ---
+export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [scale, setScale] = useState(1);
-  const containerRef = useRef(null);
+
+  const slides = [
+    <Slide1 />, <Slide2 />, <Slide3 />, <Slide4 />, <Slide5 />, 
+    <Slide6 />, <Slide7 />, <Slide8 />, <Slide9 />, <Slide10 />,
+    <Slide11 />, <Slide12 />, <Slide13 />, <Slide14 />, <Slide15 />
+  ];
 
   const handleNext = useCallback(() => {
-    setCurrentSlide((prev) => Math.min(prev + 1, slides.length - 1));
-  }, []);
+    setCurrentSlide((prev) => (prev < slides.length - 1 ? prev + 1 : prev));
+  }, [slides.length]);
 
   const handlePrev = useCallback(() => {
-    setCurrentSlide((prev) => Math.max(prev - 1, 0));
+    setCurrentSlide((prev) => (prev > 0 ? prev - 1 : prev));
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'ArrowLeft') handlePrev();
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleNext, handlePrev]);
 
-  // Handle scaling to fit any screen perfectly while maintaining 16:9
-  useEffect(() => {
-    const updateScale = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        // Base resolution is 1280x720
-        const scaleX = clientWidth / 1280;
-        const scaleY = clientHeight / 720;
-        setScale(Math.min(scaleX, scaleY));
-      }
-    };
+  return (
+    <div className="w-full h-screen flex flex-col bg-gray-100 overflow-hidden select-none">
+      
+      {/* Slide Canvas */}
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 m-2 sm:m-4 md:m-8 lg:m-12 shadow-2xl bg-white border border-gray-200 rounded-sm overflow-hidden">
+          {slides[currentSlide]}
+        </div>
+      </div>
 
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
-  // Terminal Grid Background
-  const gridBackground = {
-    backgroundImage: `linear-gradient(rgba(102, 252, 241, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(102, 252, 241, 0.03) 1px, transparent 1px)`,
-    backgroundSize: '30px 30px'
-  };
-
-  const slides = [
-    // SLIDE 1: COVER
-    (
-      <div className="flex flex-col h-full relative p-16 overflow-hidden">
-        <div className="absolute inset-0 z-0 flex">
-          <div className="w-1/2 h-full flex items-end justify-end p-10 opacity-80 relative">
-            <svg viewBox="0 0 100 100" className="absolute top-1/4 -right-1/4 w-full h-full" preserveAspectRatio="none">
-              <path d="M0,50 L40,50 L60,10 L100,10" fill="none" stroke={COLORS.cyan} strokeWidth="2" className="drop-shadow-[0_0_8px_#66FCF1]" />
-              <path d="M0,52 L40,52 L60,90 L100,90" fill="none" stroke={COLORS.amber} strokeWidth="2" className="drop-shadow-[0_0_8px_#F5A623]" />
-              <circle cx="40" cy="51" r="2" fill={COLORS.text} />
-              <circle cx="60" cy="10" r="2" fill={COLORS.cyan} />
-              <circle cx="60" cy="90" r="2" fill={COLORS.amber} />
-            </svg>
-          </div>
+      {/* Control Bar */}
+      <div className="h-14 bg-white border-t border-gray-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-50">
+        <div className="flex items-center space-x-3 opacity-40">
+          <Crosshair size={14} />
+          <span className="font-mono text-[10px] tracking-widest font-bold">UBS.EQUITY.RESEARCH.ANALYSIS</span>
         </div>
         
-        <div className="relative z-10 flex flex-col justify-between h-full">
-          <div className="w-2/3">
-            <div className="font-mono text-sm tracking-widest text-[#45A29E] uppercase mb-6">Institutional Analysis / Evercore ISI / Feb 2026</div>
-            <h1 className="font-sans font-bold text-7xl leading-tight tracking-tight uppercase">
-              The Semiconductor <br/>
-              <span className="text-[#66FCF1]">Supercycle</span> is Structurally <br/>
-              <span className="text-[#F5A623]">Bifurcated</span>
-            </h1>
-          </div>
-          <div className="font-mono text-xl border-l-2 border-[#66FCF1] pl-6 mt-8 w-1/2">
-            AI Infrastructure accelerates while Analog and Edge markets execute a conservative reset.
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 2: EXECUTIVE MANDATE
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#66FCF1] uppercase mb-8 pb-4 border-b border-[#1F2833]">
-          Strategic Environment Parameters: Q1 2026
-        </h2>
-        <div className="grid grid-cols-3 gap-8 h-full">
-          <div className="border border-[#1F2833] bg-[#0B0C10]/50 p-8 flex flex-col relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-[#66FCF1] opacity-50 shadow-[0_0_10px_#66FCF1]"></div>
-            <Activity className="text-[#66FCF1] w-10 h-10 mb-6" />
-            <h3 className="font-sans font-bold text-2xl uppercase mb-4">AI Compute Dominance</h3>
-            <p className="font-mono text-base text-[#E0E2E4]/80 leading-relaxed flex-grow">
-              Hyperscaler capital expenditure dictates supply chain momentum. Silicon diversity increases as foundation training and specialized inference requirements diverge.
-            </p>
-          </div>
-          <div className="border border-[#1F2833] bg-[#0B0C10]/50 p-8 flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-[#E0E2E4] opacity-50"></div>
-            <Cpu className="text-[#E0E2E4] w-10 h-10 mb-6" />
-            <h3 className="font-sans font-bold text-2xl uppercase mb-4">Core Computing Shifts</h3>
-            <p className="font-mono text-base text-[#E0E2E4]/80 leading-relaxed flex-grow">
-              TCO advantages drive profound market share acquisition across server and client architectures. Incumbents face severe structural pressure in high-margin segments.
-            </p>
-          </div>
-          <div className="border border-[#1F2833] bg-[#0B0C10]/50 p-8 flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-[#F5A623] opacity-50 shadow-[0_0_10px_#F5A623]"></div>
-            <Network className="text-[#F5A623] w-10 h-10 mb-6" />
-            <h3 className="font-sans font-bold text-2xl uppercase mb-4">Analog / Edge Reset</h3>
-            <p className="font-mono text-base text-[#E0E2E4]/80 leading-relaxed flex-grow">
-              Automotive inventory digestion forces conservative target derisking. Simultaneously, aggressive M&A activity consolidates the intelligent edge for future deployment.
-            </p>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 3: CAPEX VS FCF MACRO
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-8 leading-tight border-l-4 border-[#66FCF1] pl-6">
-          Hyperscaler capital expenditure for AI infrastructure remains resilient despite free cash flow compression
-        </h2>
-        <div className="flex flex-row gap-12 mt-4 flex-grow min-h-0">
-          <div className="w-5/12 font-mono text-lg space-y-8">
-            <div className="flex items-start">
-              <span className="text-[#66FCF1] mr-4 mt-1">❯</span>
-              <p>Market concerns regarding a CapEx pullback fundamentally overlook structural investment mandates.</p>
-            </div>
-            <div className="flex items-start">
-              <span className="text-[#66FCF1] mr-4 mt-1">❯</span>
-              <p>Strategic investments prioritize long-term computational dominance over short-term FCF optics.</p>
-            </div>
-            <div className="flex items-start">
-              <span className="text-[#66FCF1] mr-4 mt-1">❯</span>
-              <p>Compute density requirements dictate continuous hardware refresh cycles regardless of immediate revenue realization.</p>
-            </div>
-            <div className="mt-8 p-6 border border-[#1F2833] bg-[#1F2833]/20">
-              <span className="block text-sm text-[#45A29E] uppercase mb-2">Conclusion Matrix</span>
-              <span className="font-bold text-[#E0E2E4]">Hardware deployment is decoupled from quarter-to-quarter cash generation constraints.</span>
-            </div>
-          </div>
-          <div className="w-7/12 border border-[#1F2833] bg-[#0B0C10] p-6 relative flex flex-col h-full">
-            <div className="font-mono text-sm text-[#45A29E] mb-4 uppercase flex justify-between">
-              <span>Projected FCF vs AI CapEx Committments (Normalized Index)</span>
-              <span className="flex items-center gap-2"><div className="w-4 h-4 bg-[#1F2833]"></div> FCF <div className="w-4 h-1.5 bg-[#66FCF1] shadow-[0_0_5px_#66FCF1]"></div> CapEx</span>
-            </div>
-            <div className="relative flex-grow w-full flex items-end justify-between px-6 pb-6 min-h-0">
-              {/* Background FCF Bars */}
-              {[95, 88, 75, 70, 68, 65, 66, 62].map((val, i) => (
-                <div key={`fcf-${i}`} className="w-12 bg-[#1F2833] transition-all" style={{ height: `${val}%` }}></div>
-              ))}
-              {/* Overlay CapEx Line */}
-              <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                <polyline 
-                  points="5%,80% 18%,75% 31%,60% 43%,50% 56%,35% 69%,20% 81%,10% 95%,5%" 
-                  fill="none" 
-                  stroke={COLORS.cyan} 
-                  strokeWidth="4" 
-                  className="drop-shadow-[0_0_10px_#66FCF1]" 
-                />
-                {[80, 75, 60, 50, 35, 20, 10, 5].map((val, i) => (
-                  <circle key={`dot-${i}`} cx={`${5 + (i * 12.8)}%`} cy={`${val}%`} r="6" fill={COLORS.bg} stroke={COLORS.cyan} strokeWidth="3" />
-                ))}
-              </svg>
-            </div>
-            <div className="flex justify-between font-mono text-xs text-[#E0E2E4]/50 border-t border-[#1F2833] pt-4 px-4">
-              <span>Q1'24</span><span>Q2'24</span><span>Q3'24</span><span>Q4'24</span><span>Q1'25</span><span>Q2'25</span><span>Q3'25</span><span>Q4'25</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 4: CHANNEL CHECKS OVERVIEW
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-12 text-center tracking-tight">
-          4Q25 Channel Checks: <span className="text-[#66FCF1]">GPU</span> vs <span className="text-[#66FCF1]">Custom ASICs</span>
-        </h2>
-        <div className="flex flex-col flex-grow items-center justify-center">
-          <div className="w-full max-w-5xl border border-[#1F2833] relative p-12">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0B0C10] px-6 font-mono text-[#45A29E] text-base border border-[#1F2833]">
-              Workload Routing Schematic
-            </div>
-            
-            <div className="flex flex-row justify-between items-center gap-12">
-              {/* GPU Block */}
-              <div className="flex-1 border border-[#E0E2E4]/20 bg-[#1F2833]/30 p-8 flex flex-col items-center text-center h-64">
-                <Database className="w-16 h-16 text-[#E0E2E4] mb-6 mt-2" />
-                <h3 className="font-sans font-bold text-2xl uppercase mb-3">Merchant GPUs</h3>
-                <p className="font-mono text-sm text-[#E0E2E4]/70 mb-4 px-4">General-Purpose Foundation Training</p>
-                <div className="w-full h-1.5 bg-[#E0E2E4]/30 mt-auto"></div>
-              </div>
-
-              {/* Data Flow */}
-              <div className="flex flex-col items-center justify-center px-4 w-48">
-                <div className="flex items-center gap-2 mb-4 font-mono text-xs text-[#66FCF1]">
-                  <span>AI INFRASTRUCTURE</span>
-                </div>
-                <svg viewBox="0 0 100 40" className="w-full h-16 overflow-visible">
-                  <path d="M0,20 L40,20 L60,5 L100,5" fill="none" stroke={COLORS.text} strokeWidth="1" strokeDasharray="4" />
-                  <path d="M0,20 L40,20 L60,35 L100,35" fill="none" stroke={COLORS.cyan} strokeWidth="3" className="drop-shadow-[0_0_8px_#66FCF1]" />
-                  <circle cx="50" cy="20" r="4" fill={COLORS.bg} stroke={COLORS.text} strokeWidth="2" />
-                </svg>
-              </div>
-
-              {/* ASIC Block */}
-              <div className="flex-1 border border-[#66FCF1]/30 bg-[#66FCF1]/10 p-8 flex flex-col items-center text-center relative overflow-hidden h-64">
-                <div className="absolute top-0 w-full h-full bg-[linear-gradient(45deg,transparent_25%,rgba(102,252,241,0.05)_50%,transparent_75%)] bg-[length:15px_15px]"></div>
-                <Cpu className="w-16 h-16 text-[#66FCF1] mb-6 mt-2 relative z-10" />
-                <h3 className="font-sans font-bold text-2xl uppercase mb-3 text-[#66FCF1] relative z-10">Custom ASICs</h3>
-                <p className="font-mono text-sm text-[#E0E2E4]/70 mb-4 px-4 relative z-10">Specialized Inference & Internal Workloads</p>
-                <div className="w-full h-1.5 bg-[#66FCF1] shadow-[0_0_10px_#66FCF1] mt-auto relative z-10"></div>
-              </div>
-            </div>
-            
-            <div className="mt-12 font-mono text-base text-center border-t border-[#1F2833] pt-6 text-[#E0E2E4]/80">
-              Silicon diversity is fundamentally increasing. Procurement strategies are executing a dual-track mandate rather than consolidating onto a single architecture.
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 5: GPU DOMINANCE
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <div className="flex items-center gap-6 mb-12 pb-6 border-b border-[#1F2833]">
-          <Database className="w-10 h-10 text-[#E0E2E4]" />
-          <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase">
-            GPUs remain the absolute standard for massive foundation model training
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-16 flex-grow items-center">
-          <div className="space-y-8 font-mono text-lg">
-            <p className="leading-relaxed">
-              Despite the rise of custom silicon, 4Q25 Channel Checks confirm that for untargeted, parameter-heavy foundation models, merchant GPUs provide unassailable software ecosystem advantages.
-            </p>
-            <div className="p-6 border-l-4 border-[#E0E2E4] bg-[#1F2833]/20">
-              CUDA and established libraries create a high friction barrier for switching core training clusters.
-            </div>
-            <ul className="space-y-4 pl-4">
-              <li className="flex items-start"><span className="text-[#45A29E] mr-3 mt-1">■</span> Scalability across unpredictable workloads.</li>
-              <li className="flex items-start"><span className="text-[#45A29E] mr-3 mt-1">■</span> Highest bandwidth memory integration availability.</li>
-              <li className="flex items-start"><span className="text-[#45A29E] mr-3 mt-1">■</span> Rapid iteration cycles leveraging merchant R&D scale.</li>
-            </ul>
-          </div>
-          <div className="border border-[#1F2833] p-12 bg-[#0B0C10] flex items-center justify-center relative h-full">
-            {/* Abstract GPU Rack visual */}
-            <div className="w-full max-w-sm grid grid-cols-1 gap-4">
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="h-10 border border-[#45A29E] bg-[#1F2833]/40 flex items-center px-6 relative overflow-hidden">
-                  <div className={`absolute top-0 left-0 h-full w-2 bg-[#E0E2E4]`}></div>
-                  <div className="w-full flex justify-between items-center pl-6">
-                    <span className="font-mono text-xs text-[#45A29E]">NODE_{i}</span>
-                    <div className="flex gap-2">
-                      <div className="w-2 h-2 rounded-full bg-[#66FCF1] shadow-[0_0_8px_#66FCF1]"></div>
-                      <div className="w-2 h-2 rounded-full bg-[#66FCF1] shadow-[0_0_8px_#66FCF1]"></div>
-                      <div className="w-2 h-2 rounded-full bg-[#E0E2E4]/20"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="absolute -bottom-5 bg-[#0B0C10] px-6 py-1 font-mono text-sm border border-[#1F2833] text-[#E0E2E4]/60">
-              Training Cluster Topology
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 6: CUSTOM ASIC ACCELERATION
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <div className="flex items-center gap-6 mb-12 pb-6 border-b border-[#66FCF1]">
-          <Cpu className="w-10 h-10 text-[#66FCF1]" />
-          <h2 className="font-sans font-bold text-4xl text-[#66FCF1] uppercase">
-            Custom ASICs show accelerating deployment in specialized inference
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-16 flex-grow items-center">
-          <div className="order-1 border border-[#66FCF1]/40 p-12 bg-[#0B0C10] flex items-center justify-center relative shadow-[inset_0_0_30px_rgba(102,252,241,0.05)] h-full">
-            {/* ASIC Die Visual */}
-            <div className="w-64 h-64 border-2 border-[#66FCF1] p-3 relative">
-              <div className="w-full h-full border border-[#45A29E] grid grid-cols-3 grid-rows-3 gap-2 p-2">
-                {[...Array(9)].map((_, i) => (
-                  <div key={i} className={`bg-[#66FCF1]/20 border border-[#66FCF1]/40 ${i === 4 ? 'bg-[#66FCF1]/40 shadow-[0_0_15px_#66FCF1]' : ''}`}></div>
-                ))}
-              </div>
-              <div className="absolute -top-3 -left-3 w-6 h-6 border-t-4 border-l-4 border-[#E0E2E4]"></div>
-              <div className="absolute -bottom-3 -right-3 w-6 h-6 border-b-4 border-r-4 border-[#E0E2E4]"></div>
-            </div>
-            <div className="absolute -bottom-5 bg-[#0B0C10] px-6 py-1 font-mono text-sm border border-[#66FCF1]/50 text-[#66FCF1]">
-              Optimized Silicon Die
-            </div>
-          </div>
-          <div className="order-2 space-y-8 font-mono text-lg">
-            <p className="leading-relaxed">
-              Hyperscalers are aggressively transitioning deterministic, high-volume inference workloads to internal custom silicon to drastically lower CapEx-per-query.
-            </p>
-            <div className="p-6 border-l-4 border-[#66FCF1] bg-[#66FCF1]/10">
-              Power efficiency and specific workload optimization render merchant GPUs economically unviable for mature product deployment.
-            </div>
-            <ul className="space-y-4 pl-4">
-              <li className="flex items-start"><span className="text-[#66FCF1] mr-3 mt-1">■</span> Meta MTIA, Google TPU, AWS Trainium/Inferentia.</li>
-              <li className="flex items-start"><span className="text-[#66FCF1] mr-3 mt-1">■</span> Focused on search, recommendation engines, and ad serving.</li>
-              <li className="flex items-start"><span className="text-[#66FCF1] mr-3 mt-1">■</span> Reduces dependency on single-source supply chains.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 7: CPU SHIFTS OVERVIEW
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-6 leading-tight border-l-4 border-[#E0E2E4] pl-6">
-          AMD accelerates market share acquisition across both server and client computing architectures
-        </h2>
-        <div className="flex flex-col flex-grow justify-center pb-4">
-          <div className="text-center font-mono text-2xl text-[#66FCF1] mb-16">
-            4Q25 CPU Analysis confirms structural shifts in processor deployment.
-          </div>
-          <div className="grid grid-cols-2 gap-12 max-w-6xl mx-auto w-full">
-            <div className="border border-[#1F2833] p-10 text-center bg-[#1F2833]/10">
-              <Server className="w-14 h-14 text-[#E0E2E4] mx-auto mb-6" />
-              <h3 className="font-sans font-bold text-2xl uppercase mb-4">Server Deployments</h3>
-              <div className="h-1 w-24 bg-[#66FCF1] mx-auto mb-6"></div>
-              <p className="font-mono text-lg text-[#E0E2E4]/70 leading-relaxed px-4">
-                Driven by overwhelming Total Cost of Ownership (TCO) advantages and absolute core-density leadership in data centers.
-              </p>
-            </div>
-            <div className="border border-[#1F2833] p-10 text-center bg-[#1F2833]/10">
-              <Layers className="w-14 h-14 text-[#E0E2E4] mx-auto mb-6" />
-              <h3 className="font-sans font-bold text-2xl uppercase mb-4">Client Architectures</h3>
-              <div className="h-1 w-24 bg-[#66FCF1] mx-auto mb-6"></div>
-              <p className="font-mono text-lg text-[#E0E2E4]/70 leading-relaxed px-4">
-                Reflects aggressive enterprise adoption and robust architectural execution against incumbent inertia.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 8: SERVER CPU DATA
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-8 flex items-center justify-between">
-          <span>Server CPU Market Share Trajectory</span>
-          <span className="font-mono text-lg text-[#66FCF1] border border-[#66FCF1] px-4 py-2">Q1'24 - Q4'25</span>
-        </h2>
-        <div className="flex-grow flex flex-col relative border border-[#1F2833] bg-[#0B0C10] p-8 min-h-0">
-          <p className="font-mono text-base text-[#E0E2E4]/80 mb-8 max-w-4xl">
-            Incumbent architectures face sustained competitive pressure in high-margin segments as cloud providers prioritize power-to-performance ratios.
-          </p>
+        <div className="flex items-center space-x-8">
+          <button 
+            onClick={handlePrev}
+            disabled={currentSlide === 0}
+            className={`p-2 transition-all rounded-full hover:bg-gray-100 ${currentSlide === 0 ? 'opacity-10 cursor-not-allowed' : 'opacity-100'}`}
+          >
+            <ChevronLeft size={20} />
+          </button>
           
-          {/* Area Chart Representation */}
-          <div className="flex-grow w-full relative min-h-0">
-            <svg className="w-full h-full overflow-visible" viewBox="0 0 100 50" preserveAspectRatio="none">
-              {/* Grid Lines */}
-              <line x1="0" y1="10" x2="100" y2="10" stroke="#1F2833" strokeDasharray="2" />
-              <line x1="0" y1="25" x2="100" y2="25" stroke="#1F2833" strokeDasharray="2" />
-              <line x1="0" y1="40" x2="100" y2="40" stroke="#1F2833" strokeDasharray="2" />
-              
-              {/* Incumbent Area (Gray) */}
-              <polygon points="0,50 0,10 20,12 40,15 60,20 80,25 100,28 100,50" fill="#1F2833" opacity="0.5" />
-              <polyline points="0,10 20,12 40,15 60,20 80,25 100,28" fill="none" stroke="#45A29E" strokeWidth="1" />
-              
-              {/* AMD Area (Cyan) */}
-              <polygon points="0,50 0,40 20,38 40,35 60,30 80,25 100,22 100,50" fill="url(#cyanGradient)" />
-              <polyline points="0,40 20,38 40,35 60,30 80,25 100,22" fill="none" stroke="#66FCF1" strokeWidth="2" className="drop-shadow-[0_0_8px_#66FCF1]" />
-              
-              <defs>
-                <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#66FCF1" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#66FCF1" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute top-6 right-6 bg-[#0B0C10] border border-[#1F2833] p-4 font-mono text-sm">
-              <div className="flex items-center gap-3 mb-3"><div className="w-4 h-4 bg-[#1F2833]"></div> Incumbent (Share ↓)</div>
-              <div className="flex items-center gap-3"><div className="w-4 h-4 bg-[#66FCF1] shadow-[0_0_8px_#66FCF1]"></div> AMD (Share ↑)</div>
-            </div>
-          </div>
-          <div className="flex justify-between font-mono text-xs text-[#E0E2E4]/50 pt-6 px-2 uppercase mt-2">
-            <span>Q1 24</span><span>Q2 24</span><span>Q3 24</span><span>Q4 24</span><span>Q1 25</span><span>Q2 25</span><span>Q3 25</span><span className="text-[#66FCF1] font-bold">Q4 25</span>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 9: ANALOG/EDGE TRANSITION
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden justify-center items-center relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,166,35,0.05)_0%,transparent_60%)]"></div>
-        <Radio className="w-24 h-24 text-[#F5A623] mb-10" />
-        <h2 className="font-sans font-bold text-6xl text-[#E0E2E4] uppercase text-center mb-8 tracking-tight">
-          The <span className="text-[#F5A623]">Analog</span> & <span className="text-[#F5A623]">Automotive</span> Reset
-        </h2>
-        <div className="w-32 h-1 bg-[#F5A623] shadow-[0_0_15px_#F5A623] mb-10"></div>
-        <p className="font-mono text-2xl text-[#E0E2E4]/80 text-center max-w-4xl leading-relaxed">
-          While digital logic accelerates, the physical edge is undergoing a necessary, structural derisking driven by automotive inventory digestion and industrial consolidation.
-        </p>
-      </div>
-    ),
-
-    // SLIDE 10: ALGM WATERFALL
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-10 border-l-4 border-[#F5A623] pl-6">
-          Allegro MicroSystems executes a conservative target model reset reflecting automotive market realities
-        </h2>
-        <div className="flex flex-row gap-12 flex-grow min-h-0">
-          {/* Waterfall Chart */}
-          <div className="w-2/3 border border-[#1F2833] bg-[#0B0C10] p-8 relative flex flex-col justify-end">
-            <div className="absolute top-6 left-6 font-mono text-sm text-[#F5A623] uppercase">Revenue Target Waterfall (Illustrative)</div>
-            <div className="flex h-full items-end gap-4 px-12 font-mono text-base text-center border-b border-[#1F2833] pb-2 mt-10">
-              
-              <div className="flex-1 flex flex-col items-center h-full justify-end">
-                <span className="mb-3 text-[#E0E2E4] font-bold text-xl">$1.5B</span>
-                <div className="w-full bg-[#1F2833] h-[90%]"></div>
-                <span className="mt-4 text-[#45A29E]">Prior Target</span>
-              </div>
-              
-              <div className="flex-1 flex flex-col items-center justify-end h-[90%]">
-                <span className="mb-3 text-red-400 font-bold text-xl">-$200M</span>
-                <div className="w-full bg-red-900/50 border border-red-500/50 h-[20%]"></div>
-                <span className="mt-4 text-[#E0E2E4]/50 leading-tight">Auto<br/>Inventory</span>
-              </div>
-              
-              <div className="flex-1 flex flex-col items-center justify-end h-[70%]">
-                <span className="mb-3 text-red-400 font-bold text-xl">-$100M</span>
-                <div className="w-full bg-red-900/50 border border-red-500/50 h-[14%]"></div>
-                <span className="mt-4 text-[#E0E2E4]/50 leading-tight">Industrial<br/>Softness</span>
-              </div>
-
-              <div className="flex-1 flex flex-col items-center h-full justify-end">
-                <span className="mb-3 text-[#F5A623] font-bold text-xl">$1.2B</span>
-                <div className="w-full bg-[#F5A623]/20 border border-[#F5A623] h-[56%] shadow-[inset_0_0_15px_rgba(245,166,35,0.2)]"></div>
-                <span className="mt-4 text-[#F5A623] font-bold">New Baseline</span>
-              </div>
-
-            </div>
-          </div>
-          {/* Text panel */}
-          <div className="w-1/3 font-mono text-lg space-y-8 flex flex-col justify-center">
-            <div className="p-6 bg-[#F5A623]/10 border border-[#F5A623]/30">
-              <strong className="text-[#F5A623] block mb-3 uppercase text-xl">Defensive Posture</strong>
-              The ALGM Analyst Day established a highly defensive forward-looking posture, anchoring to a lower-growth environment.
-            </div>
-            <ul className="space-y-6 text-[#E0E2E4]/80">
-              <li className="flex gap-4 items-start"><ArrowRight className="w-6 h-6 text-[#F5A623] flex-shrink-0 mt-1" /> Target models actively derisked for prolonged automotive digestion.</li>
-              <li className="flex gap-4 items-start"><ArrowRight className="w-6 h-6 text-[#F5A623] flex-shrink-0 mt-1" /> Baseline expectations preserve high-margin operating models despite top-line cuts.</li>
-              <li className="flex gap-4 items-start"><ArrowRight className="w-6 h-6 text-[#F5A623] flex-shrink-0 mt-1" /> The reset structurally clears the deck for future outperformance as demand normalizes.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 11: TXN + SLAB OVERVIEW
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase text-center mb-12">
-          Texas Instruments' acquisition of Silicon Labs unlocks massive industrial and edge connectivity synergies
-        </h2>
-        <div className="grid grid-cols-3 gap-6 h-full min-h-0">
-          {/* TXN Panel */}
-          <div className="border border-[#1F2833] bg-[#0B0C10] p-8 flex flex-col items-center text-center">
-            <div className="w-full border-b border-[#1F2833] pb-6 mb-6">
-              <h3 className="font-sans font-bold text-3xl text-[#E0E2E4] uppercase">TXN</h3>
-              <p className="font-mono text-sm text-[#45A29E] mt-2">Acquirer Core</p>
-            </div>
-            <ul className="font-mono text-base text-left space-y-4 w-full">
-              <li className="bg-[#1F2833]/30 p-4 border-l-2 border-[#E0E2E4]">Massive Internal Manufacturing Scale (300mm transition)</li>
-              <li className="bg-[#1F2833]/30 p-4 border-l-2 border-[#E0E2E4]">Unmatched Analog Catalog & Power Management</li>
-              <li className="bg-[#1F2833]/30 p-4 border-l-2 border-[#E0E2E4]">Extensive Direct Sales Channels</li>
-            </ul>
-          </div>
-
-          {/* Synergy Center Panel */}
-          <div className="border border-[#F5A623] bg-[#F5A623]/5 p-8 flex flex-col items-center justify-center relative shadow-[inset_0_0_40px_rgba(245,166,35,0.05)]">
-            <Target className="w-16 h-16 text-[#F5A623] mb-6" />
-            <h3 className="font-sans font-bold text-2xl text-[#F5A623] uppercase mb-8 text-center">Structural Consolidation</h3>
-            <div className="font-mono text-sm text-center text-[#E0E2E4]/90 space-y-4 w-full">
-              <p className="border border-[#F5A623]/30 p-3 bg-[#F5A623]/10">Single-Vendor Edge Solutions</p>
-              <p className="border border-[#F5A623]/30 p-3 bg-[#F5A623]/10">SG&A Redundancy Elimination</p>
-              <p className="border border-[#F5A623]/30 p-3 bg-[#F5A623]/10">Immediate Margin Expansion</p>
-            </div>
-          </div>
-
-          {/* SLAB Panel */}
-          <div className="border border-[#1F2833] bg-[#0B0C10] p-8 flex flex-col items-center text-center">
-            <div className="w-full border-b border-[#1F2833] pb-6 mb-6">
-              <h3 className="font-sans font-bold text-3xl text-[#E0E2E4] uppercase">SLAB</h3>
-              <p className="font-mono text-sm text-[#45A29E] mt-2">Acquired Asset</p>
-            </div>
-            <ul className="font-mono text-base text-left space-y-4 w-full">
-              <li className="bg-[#1F2833]/30 p-4 border-r-2 border-[#E0E2E4]">Premier Wireless Connectivity IP (Zigbee, Matter, BLE)</li>
-              <li className="bg-[#1F2833]/30 p-4 border-r-2 border-[#E0E2E4]">Industrial IoT Penetration</li>
-              <li className="bg-[#1F2833]/30 p-4 border-r-2 border-[#E0E2E4]">Specialized Edge Computing MCUs</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 12: SCE EARNINGS
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-10 leading-tight border-l-4 border-[#66FCF1] pl-6">
-          Onto Innovation and Camtek demonstrate the critical necessity of advanced packaging metrology
-        </h2>
-        <div className="flex flex-row gap-12 flex-grow min-h-0">
-          <div className="w-5/12 font-mono text-base space-y-8 flex flex-col justify-center">
-            <p className="text-xl text-[#66FCF1] leading-relaxed">Earnings reports from ADI, CAMT, and ONTO reveal divergent sector momentum.</p>
-            <div className="space-y-6">
-              <div className="border border-[#1F2833] p-6 bg-[#0B0C10]">
-                <span className="text-[#45A29E] uppercase text-sm block mb-2 font-bold">Driver 1</span>
-                SCE surprises are actively driven by the complexity of advanced AI packaging (e.g., CoWoS, HBM stacks).
-              </div>
-              <div className="border border-[#1F2833] p-6 bg-[#0B0C10]">
-                <span className="text-[#45A29E] uppercase text-sm block mb-2 font-bold">Driver 2</span>
-                Yield management and 3D metrology transition from optional enhancements to mission-critical fabrication bottlenecks.
-              </div>
-              <div className="border border-[#1F2833] p-6 bg-[#0B0C10]">
-                <span className="text-[#45A29E] uppercase text-sm block mb-2 font-bold">Driver 3</span>
-                Capital equipment linked to advanced logic packaging severely outperforms broader wafer fabrication equipment.
-              </div>
-            </div>
-          </div>
-          
-          {/* Packaging Schematic */}
-          <div className="w-7/12 border border-[#1F2833] bg-[#0B0C10] p-10 flex items-center justify-center relative">
-             <div className="absolute top-6 right-6 font-mono text-sm text-[#45A29E] uppercase">2.5D/3D Package Metrology</div>
-             <div className="w-full max-w-lg relative mt-8">
-                {/* Laser scan effect */}
-                <div className="absolute left-0 w-full h-1 bg-[#66FCF1] shadow-[0_0_20px_#66FCF1] animate-pulse z-10" style={{top: '40%'}}></div>
-                
-                {/* Structure */}
-                <div className="border-2 border-[#1F2833] p-4 flex gap-4 justify-center bg-[#1F2833]/10">
-                  <div className="w-24 flex flex-col gap-1.5">
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="text-center font-mono text-[10px] mt-2 text-[#E0E2E4]/70 uppercase">HBM Stack</div>
-                  </div>
-                  <div className="w-48 h-32 bg-[#66FCF1]/20 border border-[#66FCF1] flex items-center justify-center relative">
-                    <span className="font-mono text-base text-[#66FCF1] uppercase">Logic Die</span>
-                    {/* Defect marker */}
-                    <div className="absolute top-4 right-4 w-3 h-3 border-2 border-red-500 bg-red-500/50 rounded-full animate-ping"></div>
-                  </div>
-                  <div className="w-24 flex flex-col gap-1.5">
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="h-6 bg-[#E0E2E4]/40 border border-[#E0E2E4]"></div>
-                    <div className="text-center font-mono text-[10px] mt-2 text-[#E0E2E4]/70 uppercase">HBM Stack</div>
-                  </div>
-                </div>
-                <div className="w-full h-10 bg-[#45A29E]/20 border border-[#45A29E] mt-3 flex items-center justify-center">
-                   <span className="font-mono text-sm text-[#45A29E] uppercase">Silicon Interposer</span>
-                </div>
-                <div className="w-full flex justify-between px-6 mt-2">
-                  {[...Array(16)].map((_, i) => <div key={i} className="w-3 h-5 bg-[#F5A623]/50"></div>)}
-                </div>
-                <div className="w-full h-12 bg-[#1F2833] mt-2 flex items-center justify-center">
-                   <span className="font-mono text-sm text-[#E0E2E4]/50 uppercase">Package Substrate</span>
-                </div>
+          <div className="flex flex-col items-center">
+             <span className="font-mono text-xs font-bold" style={{ color: THEME.text }}>
+               {String(currentSlide + 1).padStart(2, '0')} <span className="opacity-20 mx-1">/</span> {String(slides.length).padStart(2, '0')}
+             </span>
+             <div className="w-24 h-[2px] bg-gray-100 mt-1 relative overflow-hidden">
+                <div 
+                  className="absolute h-full bg-blue-500 transition-all duration-300" 
+                  style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
+                ></div>
              </div>
           </div>
-        </div>
-      </div>
-    ),
 
-    // SLIDE 13: QUANTUM TRANSITION (QUBITS 2026)
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden relative">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-12 text-center z-10">
-          Qubits 2026 confirms the steady commercial maturation of quantum architectures
-        </h2>
-        
-        <div className="flex-grow flex items-center justify-center relative min-h-0">
-          {/* Central Chandelier Wireframe */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-            <svg width="400" height="500" viewBox="0 0 200 300">
-              <circle cx="100" cy="50" r="40" fill="none" stroke={COLORS.cyan} strokeWidth="2" strokeDasharray="4"/>
-              <circle cx="100" cy="120" r="30" fill="none" stroke={COLORS.text} strokeWidth="1"/>
-              <circle cx="100" cy="180" r="20" fill="none" stroke={COLORS.text} strokeWidth="1"/>
-              <circle cx="100" cy="230" r="10" fill="none" stroke={COLORS.text} strokeWidth="1"/>
-              <path d="M60,50 L70,120 L80,180 L90,230" fill="none" stroke={COLORS.cyan} strokeWidth="1"/>
-              <path d="M140,50 L130,120 L120,180 L110,230" fill="none" stroke={COLORS.cyan} strokeWidth="1"/>
-              <line x1="100" y1="10" x2="100" y2="280" stroke={COLORS.text} strokeWidth="1" strokeDasharray="2" />
-            </svg>
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-32 gap-y-12 max-w-5xl z-10 w-full">
-            <div className="border border-[#1F2833] bg-[#0B0C10]/90 p-8 backdrop-blur-md">
-              <div className="font-mono text-base text-[#45A29E] mb-3 uppercase font-bold">01. Physics to Silicon</div>
-              <p className="font-mono text-lg text-[#E0E2E4] leading-relaxed">The transition from theoretical physics to engineered silicon scaling is actively underway across the supply chain.</p>
-            </div>
-            <div className="border border-[#1F2833] bg-[#0B0C10]/90 p-8 backdrop-blur-md">
-              <div className="font-mono text-base text-[#45A29E] mb-3 uppercase font-bold">02. Predictable Improvement</div>
-              <p className="font-mono text-lg text-[#E0E2E4] leading-relaxed">Error correction and logical qubit fidelity show measurable, predictable improvement trajectories rather than stochastic jumps.</p>
-            </div>
-            <div className="border border-[#1F2833] bg-[#0B0C10]/90 p-8 backdrop-blur-md">
-              <div className="font-mono text-base text-[#45A29E] mb-3 uppercase font-bold">03. Hybrid Integration</div>
-              <p className="font-mono text-lg text-[#E0E2E4] leading-relaxed">Integration pathways between classical supercomputing clusters and quantum processing units (QPUs) are hardening.</p>
-            </div>
-            <div className="border border-[#1F2833] bg-[#0B0C10]/90 p-8 backdrop-blur-md">
-              <div className="font-mono text-base text-[#45A29E] mb-3 uppercase font-bold">04. Supply Chain Standardization</div>
-              <p className="font-mono text-lg text-[#E0E2E4] leading-relaxed">The traditional semiconductor supply chain is beginning to standardize quantum control and cryogenic readout infrastructure.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 14: SUMMARY DATA POINTS
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden">
-        <h2 className="font-sans font-bold text-4xl text-[#E0E2E4] uppercase mb-12 pb-6 border-b border-[#1F2833]">
-          Quantitative Market Synthesis
-        </h2>
-        <div className="grid grid-cols-4 gap-6 flex-grow content-center min-h-0">
-          <div className="border border-[#66FCF1]/30 p-8 flex flex-col justify-center text-center bg-[#66FCF1]/5 h-64">
-            <span className="font-sans font-bold text-5xl text-[#66FCF1] mb-4">Resilient</span>
-            <span className="font-mono text-sm text-[#E0E2E4]/80 uppercase tracking-widest">AI CapEx Mandates</span>
-          </div>
-          <div className="border border-[#E0E2E4]/30 p-8 flex flex-col justify-center text-center bg-[#1F2833]/20 h-64">
-            <span className="font-sans font-bold text-5xl text-[#E0E2E4] mb-4">Dual</span>
-            <span className="font-mono text-sm text-[#E0E2E4]/80 uppercase tracking-widest">Track Silicon Strategy</span>
-          </div>
-          <div className="border border-[#E0E2E4]/30 p-8 flex flex-col justify-center text-center bg-[#1F2833]/20 h-64">
-            <span className="font-sans font-bold text-5xl text-[#E0E2E4] mb-4">Share↑</span>
-            <span className="font-mono text-sm text-[#E0E2E4]/80 uppercase tracking-widest">AMD Market Acquistion</span>
-          </div>
-          <div className="border border-[#F5A623]/30 p-8 flex flex-col justify-center text-center bg-[#F5A623]/5 h-64">
-            <span className="font-sans font-bold text-5xl text-[#F5A623] mb-4">Reset</span>
-            <span className="font-mono text-sm text-[#E0E2E4]/80 uppercase tracking-widest">Analog & Auto Targets</span>
-          </div>
-        </div>
-      </div>
-    ),
-
-    // SLIDE 15: CLOSING THESIS
-    (
-      <div className="flex flex-col h-full p-12 overflow-hidden relative justify-center items-center bg-[#0B0C10]">
-        <div className="absolute inset-0 z-0">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {/* Diverging Lines */}
-            <path d="M0,50 L30,50 L100,10" fill="none" stroke={COLORS.cyan} strokeWidth="3" className="drop-shadow-[0_0_20px_#66FCF1]" />
-            <path d="M0,50 L30,50 L100,50" fill="none" stroke={COLORS.amber} strokeWidth="3" className="drop-shadow-[0_0_20px_#F5A623]" />
-          </svg>
+          <button 
+            onClick={handleNext}
+            disabled={currentSlide === slides.length - 1}
+            className={`p-2 transition-all rounded-full hover:bg-gray-100 ${currentSlide === slides.length - 1 ? 'opacity-10 cursor-not-allowed' : 'opacity-100'}`}
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
         
-        <div className="relative z-10 bg-[#0B0C10]/90 p-12 border-y-2 border-[#1F2833] backdrop-blur-md max-w-5xl text-center">
-          <h1 className="font-sans font-bold text-6xl text-[#E0E2E4] uppercase leading-tight mb-8 tracking-tight">
-            The architecture of computation has permanently bifurcated.
-          </h1>
-          <p className="font-mono text-2xl text-[#45A29E] leading-relaxed">
-            Capital will concentrate heavily on the architects of AI scale <br/>and the consolidators of the intelligent edge.
-          </p>
-        </div>
-      </div>
-    )
-  ];
-
-  return (
-    <div className="min-h-screen bg-[#000000] flex items-center justify-center p-2 sm:p-4 font-sans overflow-hidden">
-      {/* Outer bounding box that enforces maximum 16:9 size relative to screen */}
-      <div 
-        ref={containerRef}
-        className="relative shadow-[0_0_50px_rgba(31,40,51,0.5)] overflow-hidden rounded-md border border-[#1F2833]"
-        style={{ 
-          aspectRatio: '16/9',
-          width: '100%',
-          maxHeight: 'calc(100vh - 2rem)',
-          maxWidth: 'calc((100vh - 2rem) * 16 / 9)',
-          backgroundColor: COLORS.bg
-        }}
-      >
-        {/* Fixed 1280x720 internal stage that perfectly scales down/up to fit */}
-        <div 
-          className="absolute top-1/2 left-1/2 origin-center"
-          style={{ 
-            width: '1280px', 
-            height: '720px', 
-            transform: `translate(-50%, -50%) scale(${scale})`,
-            backgroundColor: COLORS.bg,
-            color: COLORS.text,
-            ...gridBackground
-          }}
-        >
-          {/* Slide Content */}
-          <div className="w-full h-full relative z-10">
-            {slides[currentSlide]}
-          </div>
-
-          {/* Navigation UI - Positioned absolutely inside the 1280x720 container so it scales cleanly */}
-          <div className="absolute bottom-6 right-8 z-50 flex items-center gap-4 bg-[#0B0C10] border border-[#1F2833] p-3 shadow-lg">
-            <span className="font-mono text-sm text-[#45A29E] mr-3">
-              {String(currentSlide + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
-            </span>
-            <button 
-              onClick={handlePrev}
-              disabled={currentSlide === 0}
-              className={`p-2 rounded hover:bg-[#1F2833] transition-colors ${currentSlide === 0 ? 'opacity-30 cursor-not-allowed' : 'text-[#E0E2E4]'}`}
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <button 
-              onClick={handleNext}
-              disabled={currentSlide === slides.length - 1}
-              className={`p-2 rounded hover:bg-[#1F2833] transition-colors ${currentSlide === slides.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-[#E0E2E4]'}`}
-            >
-              <ArrowRight className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Top subtle progress bar */}
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-[#1F2833] z-50">
-            <div 
-              className="h-full bg-[#45A29E] transition-all duration-300 ease-out"
-              style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
-            ></div>
-          </div>
+        <div className="hidden sm:block text-[10px] font-mono opacity-20 uppercase tracking-tighter">
+          Architect v4.2 // Final Review // February 2026
         </div>
       </div>
     </div>
   );
-};
-
-export default Presentation;
+}
