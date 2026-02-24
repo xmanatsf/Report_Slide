@@ -3,7 +3,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import Semis from "./Semis-on-Fire 20-Feb-26.jsx";
 import CJMuse from "./CJ Muse AI monthly 2025 Feb.jsx";
 import TSMC from "./TSMC increase Capex Slide.jsx";
-import Humanoid from "./HumanoidSlides.jsx"; // ✅ NEW
+import Humanoid from "./HumanoidSlides.jsx";
 import AIInfrastructure from "./AIInfrastructure.jsx"; // ✅ NEW
 
 export default function App() {
@@ -24,7 +24,7 @@ export default function App() {
         <Link to="/">Semis</Link> |{" "}
         <Link to="/cjmuse">CJ Muse</Link> |{" "}
         <Link to="/tsmc">TSMC</Link> |{" "}
-        <Link to="/humanoid">Humanoid</Link> |{" "} 
+        <Link to="/humanoid">Humanoid</Link> |{" "}
         <Link to="/infrastructure">Infrastructure</Link> {/* ✅ NEW */}
       </nav>
 
