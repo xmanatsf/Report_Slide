@@ -24,7 +24,7 @@ export default function App() {
         <Link to="/">Semis</Link> |{" "}
         <Link to="/cjmuse">CJ Muse</Link> |{" "}
         <Link to="/tsmc">TSMC</Link> |{" "}
-        <Link to="/humanoid">Humanoid</Link> 
+        <Link to="/humanoid">Humanoid</Link> |{" "} 
         <Link to="/infrastructure">Infrastructure</Link> {/* ✅ NEW */}
       </nav>
 
